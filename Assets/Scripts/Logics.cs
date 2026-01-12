@@ -19,6 +19,7 @@ public class Logics : MonoBehaviour
 
     List<(int, int)> ClickedItems = new List<(int, int)> ();
 
+    //µã»÷LinkObjectµÄËõ·Å
     const float originalScale = 0.25f;
     const float targetScale = 0.35f;
 
