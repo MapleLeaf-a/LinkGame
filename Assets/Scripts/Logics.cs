@@ -19,6 +19,9 @@ public class Logics : MonoBehaviour
 
     List<(int, int)> ClickedItems = new List<(int, int)> ();
 
+    const float originalScale = 0.25f;
+    const float targetScale = 0.35f;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -51,6 +54,7 @@ public class Logics : MonoBehaviour
             if (0 <= i && i <= HEIGHT / SIZE && 0 <= j && j <= WIDTH / SIZE && used[i + 1, j + 1] && !isIJInItems((i, j)))
             {
                 ClickedItems.Add((i, j));
+                StartCoroutine(ClickedEffect(MapCreator.map(i, j), targetScale));
                 if (ClickedItems.Count == 2)
                 {
                     for (int a = 0; a < HEIGHT / SIZE + 2; a++)
@@ -75,11 +79,19 @@ public class Logics : MonoBehaviour
                     {
                         Debug.Log("补兑！");
                     }
+                    foreach ((int, int) a in ClickedItems)
+                    {
+                        StartCoroutine(RestoreClickedEffect(MapCreator.map(a.Item1, a.Item2)));
+                    }
                     ClickedItems.Clear();
                 }
             }
             else
             {
+                foreach ((int, int) a in ClickedItems)
+                {
+                    StartCoroutine(RestoreClickedEffect(MapCreator.map(a.Item1, a.Item2)));
+                }
                 ClickedItems.Clear();
                 if (0 <= i && i <= HEIGHT / SIZE && 0 <= j && j <= WIDTH / SIZE)
                 {
@@ -93,9 +105,9 @@ public class Logics : MonoBehaviour
         }
     }
 
+    //深度优先判断是否连通
     bool DFS((int, int) start, (int, int) end)
     {
-        //buggy!
         if (start.Item1 == end.Item1 && start.Item2 == end.Item2)
         { 
             return true;
@@ -118,7 +130,7 @@ public class Logics : MonoBehaviour
 
     GameObject GetLinkObject(Vector3 pos)
     {
-        Collider[] colliders = Physics.OverlapSphere(pos, SIZE / 2 - 0.1f);
+        Collider[] colliders = Physics.OverlapSphere(pos, SIZE / 2 - 0.2f);
         foreach (Collider c in colliders)
         {
             if (c.tag == "LinkObject")
@@ -141,5 +153,43 @@ public class Logics : MonoBehaviour
             }
         }
         return false;
+    }
+
+    IEnumerator ClickedEffect(Vector3 pos, float targetScale)
+    { 
+        GameObject go = GetLinkObject(pos);
+        float duration = 0.25f;          // 持续时间
+        float timer = 0f;             // 计时器
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;  // 计时
+            float progress = timer / duration;  // 计算进度（0到1）
+
+            if (go == null) break;
+            // 线性插值
+            go.transform.localScale = Vector3.one * Mathf.Lerp(originalScale, targetScale, progress);
+
+            yield return null;  // 等一帧
+        }
+    }
+
+    IEnumerator RestoreClickedEffect(Vector3 pos)
+    {
+        GameObject go = GetLinkObject(pos);
+        float duration = 0.25f;          // 持续时间
+        float timer = 0f;             // 计时器
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;  // 计时
+            float progress = timer / duration;  // 计算进度（0到1）
+
+            if (go == null) break;
+            // 线性插值
+            go.transform.localScale = Vector3.one * Mathf.Lerp(targetScale, originalScale, progress);
+
+            yield return null;  // 等一帧
+        }
     }
 }
