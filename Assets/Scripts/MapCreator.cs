@@ -16,6 +16,10 @@ public class MapCreator : MonoBehaviour
     void Awake()
     {
         array = Creator();
+        while (!Judge())
+        {
+            array = Creator();
+        }
         Global.array = array;
         for (int i = 0; i < HEIGHT / SIZE; i++)
         {
@@ -40,7 +44,25 @@ public class MapCreator : MonoBehaviour
 
         return array;
     }
-    
+
+    bool Judge()
+    {
+        List <int> counts = new List <int>(gameObjectsList.Count);
+        for (int i = 0; i < gameObjectsList.Count; i++) counts.Add(0);
+        for (int i = 0; i < HEIGHT / SIZE; i++)
+        {
+            for (int j = 0; j < WIDTH / SIZE; j++)
+            {
+                 counts[array[i, j]]++;
+            }
+        }
+        for (int i = 0; i < gameObjectsList.Count; i++)
+        {
+            if (counts[i] % 2 != 0) return false;
+        }
+        return true;
+    }
+
     //建立数组到plane的映射
     public static Vector3 map(float x, float y)
     { 
