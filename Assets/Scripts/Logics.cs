@@ -1,4 +1,4 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -12,14 +12,18 @@ public class Logics : MonoBehaviour
     const float BIAS = Global.BIAS;
     private int[,] array;
     
-    //Link «∑Ò¥Ê‘⁄
+    //LinkÊòØÂê¶Â≠òÂú®
     private bool[,] used = new bool[HEIGHT / SIZE + 2, WIDTH / SIZE + 2];
     bool[,]u = new bool[HEIGHT / SIZE + 2, WIDTH / SIZE + 2];
+    //Ê†áËÆ∞Ë∑ØÂæÑ
+    List<Vector2Int> path = new List<Vector2Int>();
+    List<List<Vector2Int>> allPaths = new List<List<Vector2Int>>();
+    //ÁªòÂà∂Ë∑ØÂæÑ
+    public LineRenderer lineRenderer;
 
+    List<Vector2Int> ClickedItems = new List<Vector2Int> ();
 
-    List<(int, int)> ClickedItems = new List<(int, int)> ();
-
-    //µ„ª˜LinkObjectµƒÀı∑≈
+    //ÁÇπÂáªLinkObjectÁöÑÁº©Êîæ
     const float originalScale = 0.25f;
     const float targetScale = 0.35f;
 
@@ -49,13 +53,13 @@ public class Logics : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 mouseDownPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            (int, int) tuple= MapCreator.map(mouseDownPosition);
-            int i = tuple.Item1, j = tuple.Item2;
+            Vector2Int tuple= MapCreator.map(mouseDownPosition);
+            int i = tuple.x, j = tuple.y;
             Debug.Log("i = "+ i + " " + "j = " + j);
-            if (0 <= i && i <= HEIGHT / SIZE && 0 <= j && j <= WIDTH / SIZE && used[i + 1, j + 1] && !isIJInItems((i, j)))
+            if (0 <= i && i <= HEIGHT / SIZE && 0 <= j && j <= WIDTH / SIZE && used[i + 1, j + 1] && !isIJInItems(new Vector2Int(i, j)))
             {
-                ClickedItems.Add((i, j));
-                StartCoroutine(ClickedEffect(MapCreator.map(i, j), targetScale));
+                ClickedItems.Add(new Vector2Int(i, j));
+                ClickedEffect(MapCreator.map(i, j), originalScale, targetScale);
                 if (ClickedItems.Count == 2)
                 {
                     for (int a = 0; a < HEIGHT / SIZE + 2; a++)
@@ -65,33 +69,46 @@ public class Logics : MonoBehaviour
                             u[a, b] = used[a, b];
                         }
                     }
-                    u[ClickedItems[0].Item1 + 1, ClickedItems[0].Item2 + 1] = false;
-                    u[ClickedItems[1].Item1 + 1, ClickedItems[1].Item2 + 1] = false;
-                    if (array[ClickedItems[0].Item1, ClickedItems[0].Item2] == array[ClickedItems[1].Item1, ClickedItems[1].Item2]
-                        && DFS(ClickedItems[0], ClickedItems[1]))
+                    u[ClickedItems[0].x + 1, ClickedItems[0].y + 1] = false;
+                    u[ClickedItems[1].x + 1, ClickedItems[1].y + 1] = false;
+                    if (array[ClickedItems[0].x, ClickedItems[0].y] == array[ClickedItems[1].x, ClickedItems[1].y])
                     {
-                        Debug.Log("œ˚≥˝£°");
-                        Destroy(GetLinkObject(MapCreator.map(ClickedItems[0].Item1, ClickedItems[0].Item2)));
-                        Destroy(GetLinkObject(MapCreator.map(ClickedItems[1].Item1, ClickedItems[1].Item2)));
-                        used[ClickedItems[0].Item1 + 1, ClickedItems[0].Item2 + 1] = false;
-                        used[ClickedItems[1].Item1 + 1, ClickedItems[1].Item2 + 1] = false;
+                        if (DFS(ClickedItems[0], ClickedItems[1]))
+                        {
+                            Debug.Log("Ê∂àÈô§ÔºÅ");
+
+                            //DFSÊé¢Á¥¢‰∏ãÁöÑÁªòÂà∂Ë∑ØÂæÑ
+                            path.Add(ClickedItems[1]); //Âä†‰∏äÁªàÁÇπ
+                            DrawPath(GetLinkObject(MapCreator.map(ClickedItems[0].x, ClickedItems[0].y)).GetComponent<SpriteRenderer>().color);
+                            for (int a = 0; a < path.Count; a++)
+                            {
+                                Debug.Log("path:" + path[a]);
+                            }
+                            path.Clear();
+
+                            Destroy(GetLinkObject(MapCreator.map(ClickedItems[0].x, ClickedItems[0].y)));
+                            Destroy(GetLinkObject(MapCreator.map(ClickedItems[1].x, ClickedItems[1].y)));
+                            used[ClickedItems[0].x + 1, ClickedItems[0].y + 1] = false;
+                            used[ClickedItems[1].x + 1, ClickedItems[1].y + 1] = false;
+                        }
+                        else
+                        {
+                            Debug.Log("Ë°•ÂÖëÔºÅ");
+                        }
                     }
-                    else
+                    
+                    foreach (Vector2Int a in ClickedItems)
                     {
-                        Debug.Log("≤π∂“£°");
-                    }
-                    foreach ((int, int) a in ClickedItems)
-                    {
-                        StartCoroutine(RestoreClickedEffect(MapCreator.map(a.Item1, a.Item2)));
+                        RestoreClickedEffect(MapCreator.map(a.x, a.y), originalScale, targetScale);
                     }
                     ClickedItems.Clear();
                 }
             }
             else
             {
-                foreach ((int, int) a in ClickedItems)
+                foreach (Vector2Int a in ClickedItems)
                 {
-                    StartCoroutine(RestoreClickedEffect(MapCreator.map(a.Item1, a.Item2)));
+                    RestoreClickedEffect(MapCreator.map(a.x, a.y), originalScale, targetScale);
                 }
                 ClickedItems.Clear();
                 if (0 <= i && i <= HEIGHT / SIZE && 0 <= j && j <= WIDTH / SIZE)
@@ -106,27 +123,29 @@ public class Logics : MonoBehaviour
         }
     }
 
-    //…Ó∂»”≈œ»≈–∂œ «∑Ò¡¨Õ®
-    bool DFS((int, int) start, (int, int) end)
+    //Ê∑±Â∫¶‰ºòÂÖàÂà§Êñ≠ÊòØÂê¶ËøûÈÄö
+    bool DFS(Vector2Int start, Vector2Int end)
     {
-        if (start.Item1 == end.Item1 && start.Item2 == end.Item2)
+        if (start.x == end.x && start.y == end.y)
         { 
             return true;
         }
-        if (start.Item1 < -1 || start.Item1 > HEIGHT / SIZE || start.Item2 < -1 || start.Item2 > WIDTH / SIZE
-            || u[start.Item1 + 1, start.Item2 + 1])
+        if (start.x < -1 || start.x > HEIGHT / SIZE || start.y < -1 || start.y > WIDTH / SIZE
+            || u[start.x + 1, start.y + 1])
         {
             return false;
         }
-        else
-        {
-            u[start.Item1 + 1, start.Item2 + 1] = true;
-            bool found = DFS((start.Item1 + 1, start.Item2), end) ||
-                         DFS((start.Item1, start.Item2 + 1), end) ||
-                         DFS((start.Item1 - 1, start.Item2), end) ||
-                         DFS((start.Item1, start.Item2 - 1), end);
-            return found;
-        }
+        
+        path.Add(start);
+
+        u[start.x + 1, start.y + 1] = true;
+        bool found = DFS(new Vector2Int(start.x + 1, start.y), end) ||
+                        DFS(new Vector2Int(start.x, start.y + 1), end) ||
+                        DFS(new Vector2Int(start.x - 1, start.y), end) ||
+                        DFS(new Vector2Int(start.x, start.y - 1), end);
+        if (!found) path.RemoveAt(path.Count - 1);
+        return found;
+
     }
 
     GameObject GetLinkObject(Vector3 pos)
@@ -136,15 +155,15 @@ public class Logics : MonoBehaviour
         {
             if (c.tag == "LinkObject")
             {
-                Debug.Log(c.name);
+                //Debug.Log(c.name);
                 return c.gameObject;
             }
         }
-        Debug.Log("Not Found!");
+        //Debug.Log("Not Found!");
         return null;
     }
 
-    bool isIJInItems((int, int) t)
+    bool isIJInItems(Vector2Int t)
     {
         for (int i = 0; i < ClickedItems.Count; i++)
         {
@@ -156,41 +175,52 @@ public class Logics : MonoBehaviour
         return false;
     }
 
-    IEnumerator ClickedEffect(Vector3 pos, float targetScale)
+    IEnumerator ScaleEffect(Vector3 pos, float originalScale, float targetScale)
     { 
         GameObject go = GetLinkObject(pos);
-        float duration = 0.25f;          // ≥÷–¯ ±º‰
-        float timer = 0f;             // º∆ ±∆˜
+        float duration = 0.25f;          // ÊåÅÁª≠Êó∂Èó¥
+        float timer = 0f;             // ËÆ°Êó∂Âô®
 
         while (timer < duration)
         {
-            timer += Time.deltaTime;  // º∆ ±
-            float progress = timer / duration;  // º∆À„Ω¯∂»£®0µΩ1£©
+            timer += Time.deltaTime;  // ËÆ°Êó∂
+            float progress = timer / duration;  // ËÆ°ÁÆóËøõÂ∫¶Ôºà0Âà∞1Ôºâ
 
             if (go == null) break;
-            // œﬂ–‘≤Â÷µ
+            // Á∫øÊÄßÊèíÂÄº
             go.transform.localScale = Vector3.one * Mathf.Lerp(originalScale, targetScale, progress);
 
-            yield return null;  // µ»“ª÷°
+            yield return null;  // Á≠â‰∏ÄÂ∏ß
         }
     }
-
-    IEnumerator RestoreClickedEffect(Vector3 pos)
+    
+    void ClickedEffect(Vector3 pos, float originalScale, float targetScale)
     {
-        GameObject go = GetLinkObject(pos);
-        float duration = 0.25f;          // ≥÷–¯ ±º‰
-        float timer = 0f;             // º∆ ±∆˜
+        StartCoroutine(ScaleEffect(pos, originalScale, targetScale));
+    }
+    
+    void RestoreClickedEffect(Vector3 pos, float originalScale, float targetScale)
+    {
+        StartCoroutine(ScaleEffect(pos, targetScale, originalScale));
+    }
 
-        while (timer < duration)
+    void DrawPath(Color color)
+    {
+        
+        for (int i = 0; i < path.Count - 1; i++)
         {
-            timer += Time.deltaTime;  // º∆ ±
-            float progress = timer / duration;  // º∆À„Ω¯∂»£®0µΩ1£©
-
-            if (go == null) break;
-            // œﬂ–‘≤Â÷µ
-            go.transform.localScale = Vector3.one * Mathf.Lerp(targetScale, originalScale, progress);
-
-            yield return null;  // µ»“ª÷°
+            GameObject lineObject = new GameObject();
+            LineRenderer newLR = lineObject.AddComponent<LineRenderer>();
+            newLR.material = new Material(Shader.Find("Sprites/Default"));
+            newLR.startColor = color;
+            newLR.endColor = color;
+            newLR.startWidth = 0.1f;
+            newLR.endWidth = 0.1f;
+            newLR.positionCount = 2;
+            newLR.SetPosition(0 ,MapCreator.map(path[i].x, path[i].y));
+            newLR.SetPosition(1, MapCreator.map(path[i + 1].x, path[i + 1].y));
+            Destroy(lineObject, 1f);
         }
     }
+    
 }

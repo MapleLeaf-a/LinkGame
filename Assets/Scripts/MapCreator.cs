@@ -70,7 +70,7 @@ public class MapCreator : MonoBehaviour
     }
     
     //建立plane到数组的映射
-    public static (int, int) map(Vector3 v3)
+    public static Vector2Int map(Vector3 v3)
     {
         //正数负数均向下取整
         double x = (v3.x + 0.5 * SIZE + BIAS) / SIZE;
@@ -83,6 +83,6 @@ public class MapCreator : MonoBehaviour
         {
             y -= SIZE;
         }
-        return ((int)x, (int)y);
+        return new Vector2Int((int)x, (int)y);
     }
 }
