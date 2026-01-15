@@ -17,7 +17,6 @@ public class Logics : MonoBehaviour
     bool[,]u = new bool[HEIGHT / SIZE + 2, WIDTH / SIZE + 2];
     //标记路径
     List<Vector2Int> path = new List<Vector2Int>();
-    List<List<Vector2Int>> allPaths = new List<List<Vector2Int>>();
     //绘制路径
     public LineRenderer lineRenderer;
 
@@ -73,17 +72,13 @@ public class Logics : MonoBehaviour
                     u[ClickedItems[1].x + 1, ClickedItems[1].y + 1] = false;
                     if (array[ClickedItems[0].x, ClickedItems[0].y] == array[ClickedItems[1].x, ClickedItems[1].y])
                     {
-                        if (DFS(ClickedItems[0], ClickedItems[1]))
+                        path = BFS(ClickedItems[0], ClickedItems[1]);
+                        if (path != null)
                         {
                             Debug.Log("消除！");
 
-                            //DFS探索下的绘制路径
-                            path.Add(ClickedItems[1]); //加上终点
                             DrawPath(GetLinkObject(MapCreator.map(ClickedItems[0].x, ClickedItems[0].y)).GetComponent<SpriteRenderer>().color);
-                            for (int a = 0; a < path.Count; a++)
-                            {
-                                Debug.Log("path:" + path[a]);
-                            }
+
                             path.Clear();
 
                             Destroy(GetLinkObject(MapCreator.map(ClickedItems[0].x, ClickedItems[0].y)));
@@ -123,29 +118,49 @@ public class Logics : MonoBehaviour
         }
     }
 
-    //深度优先判断是否连通
-    bool DFS(Vector2Int start, Vector2Int end)
-    {
-        if (start.x == end.x && start.y == end.y)
-        { 
-            return true;
-        }
-        if (start.x < -1 || start.x > HEIGHT / SIZE || start.y < -1 || start.y > WIDTH / SIZE
-            || u[start.x + 1, start.y + 1])
-        {
-            return false;
-        }
+    List<Vector2Int> BFS(Vector2Int start, Vector2Int end)
+    { 
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+
+        Vector2Int[,] parent = new Vector2Int[HEIGHT / SIZE + 2, WIDTH / SIZE + 2]; //记录父节点
         
-        path.Add(start);
+        queue.Enqueue(start);
 
-        u[start.x + 1, start.y + 1] = true;
-        bool found = DFS(new Vector2Int(start.x + 1, start.y), end) ||
-                        DFS(new Vector2Int(start.x, start.y + 1), end) ||
-                        DFS(new Vector2Int(start.x - 1, start.y), end) ||
-                        DFS(new Vector2Int(start.x, start.y - 1), end);
-        if (!found) path.RemoveAt(path.Count - 1);
-        return found;
+        Vector2Int[] direction =
+        {
+            new Vector2Int(0, 1),
+            new Vector2Int(0, -1),
+            new Vector2Int(1, 0),
+            new Vector2Int(-1, 0),
+        };
 
+        while (queue.Count > 0)
+        {
+            Vector2Int v2 = queue.Dequeue();
+            u[v2.x + 1, v2.y + 1] = true;
+
+            if (v2 == end)
+            {
+                return ConstructPath(start, end, parent);
+            }
+
+            foreach (var dir in direction)
+            {
+                Vector2Int next = v2 + dir;
+
+                if (next.x < -1 || next.x < -1 || next.x > HEIGHT / SIZE || next.y < -1 || next.y > WIDTH / SIZE
+                    || u[next.x + 1, next.y + 1])
+                {
+                    continue;
+                }
+                else
+                {
+                    parent[next.x + 1, next.y + 1] = v2;
+                    queue.Enqueue(next);
+                }
+            }
+        }
+        return null;
     }
 
     GameObject GetLinkObject(Vector3 pos)
@@ -222,5 +237,21 @@ public class Logics : MonoBehaviour
             Destroy(lineObject, 1f);
         }
     }
-    
+
+    List<Vector2Int> ConstructPath(Vector2Int start, Vector2Int end, Vector2Int[,] parent)
+    { 
+        List<Vector2Int> path = new List<Vector2Int>();
+
+        Vector2Int i = end;
+        while (i != start)
+        {
+            path.Add(i);
+            i = parent[i.x + 1, i.y + 1]; //回溯遍历
+        }
+        path.Add(start);//加上起点
+
+        path.Reverse();//反转形成路径
+        return path;
+    }
+
 }
